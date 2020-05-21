@@ -13,12 +13,23 @@ module.exports = {
           { text: '基础知识', link: '/accumulate/' },
           { text: '面试题库', link: '/interview/' },
           { text: 'Github', link: 'https://github.com/chenjiepds' }
-        ]
+        ],
+        sidebar: {
+            '/accumulate': [
+                '',
+                'git基础'
+            ],
+            '/interview/': [
+                    '',
+                    '前端',
+                    '后端'
+            ]
+        }
     },
     sidebarDepth: 2,
     sidebar: 'auto', // 侧边栏配置
-    lastUpdated: 'Last Updated', 
-    dest: './docs/.vuepress/dist',
+    // lastUpdated: 'Last Updated', 
+    // dest: './docs/.vuepress/dist',
     ga: '',
     evergreen: true,
 }
