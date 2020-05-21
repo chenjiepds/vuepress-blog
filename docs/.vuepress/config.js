@@ -15,7 +15,7 @@ module.exports = {
           { text: 'Github', link: 'https://github.com/chenjiepds' }
         ],
         sidebar: {
-            '/accumulate': [
+            '/accumulate/': [
                 '',
                 'git基础'
             ],
