@@ -17,7 +17,8 @@ module.exports = {
         sidebar: {
             '/accumulate/': [
                 '',
-                'git基础'
+                'git',
+                'debugger'
             ],
             '/interview/': [
                     '',
