@@ -3,7 +3,7 @@
 ### safari + IOS 真机调试
 
 1. 设置safari浏览器的开发模式
-![](./assets/images/ios+safari.jpg)
+![](./assets/images/ios_safari.jpg)
  选择"高级" --> 勾选开发菜单
 ![](./assets/images/setting.jpg)
 ![](./assets/images/ios_develop.jpg)
@@ -31,3 +31,8 @@
  1. 需要usb链接
  2. 需要在同一个局域网
  3. 如果点击inspect后长时间处于白屏，1） 查看chrome浏览版本，升级为最新版本；2）查看手机版的浏览是否为最新或者下载手机版chrome浏览器； 3） 打开谷歌浏览器的虚拟专有网络。
+
+
+ ### Fiddler/charles/whistle
+
+ ### vconsole
