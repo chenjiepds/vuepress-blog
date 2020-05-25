@@ -18,7 +18,8 @@ module.exports = {
             '/accumulate/': [
                 '',
                 'git',
-                'debugger'
+                'debugger',
+                'modules'
             ],
             '/interview/': [
                     '',
