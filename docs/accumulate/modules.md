@@ -469,3 +469,348 @@ CommonJS 模块是运行时加载，ES6 模块是编译时输出接口
 + -编译时加载: ES6 模块不是对象，而是通过 export 命令显式指定输出的代码，import时采用静态命令的形式。即在import时可以指定加载某个输出值，而不是加载整个模块，这种加载称为“编译时加载”。
 
 CommonJS 加载的是一个对象（即module.exports属性），该对象只有在脚本运行完才会生成。而 ES6 模块不是对象，它的对外接口只是一种静态定义，在代码静态解析阶段就会生成。
+
+## 进阶
+### 为什么同步的 Commonjs 要用在 node, 异步的 AMD 要用在前端呢?
+答: node 应用程序运行在服务器上, 程序通过文件系统可以直接读取到各个模块的文件, 特点是响应快速不会因为同步而阻塞了程序的运行. 前端项目运行在浏览器中, 每个模块都要通过 http 请求加载 js 文件, 受到网络等因素的影响如果同步的话会使得浏览器出现"假死"的情况 --- 也就是卡住了. 影响用户体验. 整场邂逅已经完全 cover 住了有没有 ^_^.
+
+### webpack 是怎么实现模块化的吗?
+答: webpack 看这里, webpack 的模块化其实就是把 ES6 模块化代码转码成 Commonjs 的形式(咦, 有点慌, 但是面试题就是这么背的呀), 从而兼容浏览器的. 前后矛盾, 已经开始有点鸡动啦, 但是强忍着希望蒙混过关...
+
+### 为什么 webpack 转码的 Commonjs 形式以后可以前端运行呢?
+所有的 js 模块都打包到了一个 bundle.js 里了, 根本没有分模块加载.
+#### commonjs 模块化的处理
+搭建项目代码, 代码地址, 其中, index.js 内容:
+```
+const foo = require('./foo');
+
+console.log(foo);
+console.log('我是高级前端工程师~');
+```
+foo.js 内容:
+```
+module.exports = {
+  name: 'quanquan',
+  job: 'fe',
+};
+```
+纯纯粹粹的 Commonjs 代码, 执行 npm run build 后, 我们再看看打包后的 bundle.js. (ps: 添加了部分注释)
+```
+(function(modules) {
+ // 缓存模块对象
+ var installedModules = {};
+ // 模拟 commonjs 实现的 require
+ function __webpack_require__(moduleId) {
+  // require 模块时先判断是否已经缓存, 已经缓存的模块直接返回
+  if(installedModules[moduleId]) {
+   return installedModules[moduleId].exports;
+  }
+  // (模拟)创建一个模块, 并把新模块的引用保存到缓存中
+  var module = installedModules[moduleId] = {
+            // 模块 id
+            i: moduleId,
+            // 模块是否已加载
+            l: false,
+            // 模块主体内容, 会被重写
+   exports: {}
+  };
+  // 执行以下模块的包装函数, 并把模块内部的 this 志向模块主体
+  modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+  // 将模块标记为已加载
+  module.l = true;
+  // 返回模块主体内容
+  return module.exports;
+ }
+    // 向外暴露所有的模块
+ __webpack_require__.m = modules;
+ // 向外暴露已缓存的模块
+    __webpack_require__.c = installedModules;
+
+    // 下边两个方法暂时还没有用到
+ // define getter function for harmony exports
+ __webpack_require__.d = function(exports, name, getter) {
+  if(!__webpack_require__.o(exports, name)) {
+   Object.defineProperty(exports, name, {
+    configurable: false,
+    enumerable: true,
+    get: getter
+   });
+  }
+ };
+ // getDefaultExport function for compatibility with non-harmony modules
+ __webpack_require__.n = function(module) {
+  var getter = module && module.__esModule ?
+   function getDefault() { return module['default']; } :
+   function getModuleExports() { return module; };
+  __webpack_require__.d(getter, 'a', getter);
+  return getter;
+    };
+
+    // Object.prototype.hasOwnProperty.call 这个就没啥好解释的啦
+    // js 权威指南上有说
+    __webpack_require__.o = function(object, property) {
+        return Object.prototype.hasOwnProperty.call(object, property);
+    };
+
+    // __webpack_public_path__
+    // 这个暂时还没有用到
+ __webpack_require__.p = "";
+    // Load entry module and return exports
+    // 准备工作做完了, require 一下入口模块, 让项目跑起来
+ return __webpack_require__(__webpack_require__.s = 0);
+})
+/********  华丽的分割线 上边时 webpack 初始化代码, 下边是我们写的模块代码 ***************/
+([
+/* 模块 0 对应 index.js */
+/***/ (function(module, exports, __webpack_require__) {
+
+const foo = __webpack_require__(1);
+
+console.log(foo);
+console.log('我是高级前端工程师~');
+
+
+/***/ }),
+/* 模块 1 对应 foo.js */
+/***/ (function(module, exports) {
+
+module.exports = {
+  name: 'quanquan',
+  job: 'fe',
+};
+
+
+/***/ })
+]);
+```
+原来 webpack 就是把我们写的代码用一个一个的包装函数包装了起来, 再执行__webpack_require__的时候调用一下包装函数. 通过包装函数内部的代码重写了参数中参数 module 的 exports 属性, 获取到我们编写的模块的主体代码. 所以我们看到了 index.js 包装后的代码为:
+```
+function(module, exports, __webpack_require__) {
+    const foo = __webpack_require__(1);
+    console.log(foo);
+    console.log('我是高级前端工程师~');
+}
+```
+foo.js 包装后的代码为:
+```
+function(module, exports) {
+    module.exports = {
+        name: 'quanquan',
+        job: 'fe',
+    };
+}
+```
+由于 index.js 中有 require('./foo') 所以 index.js 生成的包装函数参数中多了__webpack_require__用于导入 foo 模块。
+
+#### es6 Module 模块化的处理
+
+改动我们的项目代码为 es6 模块化代码, 首先修改 index.js:
+```
+import foo from './foo';
+
+console.log(foo);
+console.log('我是高级前端工程师~');
+```
+其次修改 foo.js
+```
+export default {
+  name: 'quanquan',
+  job: 'fe',
+};
+```
+
+最后就是命令行执行 npm run build 进行打包啦. 打包完成后 bundle.js 内容如下(经过优化):
+```
+(function(modules) {
+ var installedModules = {};
+ function __webpack_require__(moduleId) {
+  if(installedModules[moduleId]) {
+   return installedModules[moduleId].exports;
+  }
+  var module = installedModules[moduleId] = {
+   i: moduleId,
+   l: false,
+   exports: {}
+  };
+  modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+  module.l = true;
+  return module.exports;
+ }
+ __webpack_require__.m = modules;
+ __webpack_require__.c = installedModules;
+ __webpack_require__.d = function(exports, name, getter) {
+  if(!__webpack_require__.o(exports, name)) {
+   Object.defineProperty(exports, name, {
+    configurable: false,
+    enumerable: true,
+    get: getter
+   });
+  }
+ };
+ __webpack_require__.n = function(module) {
+  var getter = module && module.__esModule ?
+   function getDefault() { return module['default']; } :
+   function getModuleExports() { return module; };
+  __webpack_require__.d(getter, 'a', getter);
+  return getter;
+ };
+ __webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+ __webpack_require__.p = "";
+ return __webpack_require__(__webpack_require__.s = 0);
+})([
+  function(module, __webpack_exports__, __webpack_require__) {
+    "use strict";
+    Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+    var __WEBPACK_IMPORTED_MODULE_0__foo__ = __webpack_require__(1);
+    console.log(__WEBPACK_IMPORTED_MODULE_0__foo__["a"]);
+    console.log('我是高级前端工程师~');
+  },
+  function(module, __webpack_exports__, __webpack_require__) {
+   "use strict";
+    __webpack_exports__["a"] = ({
+      name: 'quanquan',
+      job: 'fe',
+    });
+  }
+]);
+```
+打包的结果仍然是天书式的代码, 还好和 commonjs 模块化方式大同小异. webpack 初始化代码完成相同.
+
+index.js 生成的包裹代码为:
+```
+function(module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+ var __WEBPACK_IMPORTED_MODULE_0__foo__ = __webpack_require__(1);
+ console.log(__WEBPACK_IMPORTED_MODULE_0__foo__["a"]);
+ console.log('我是高级前端工程师~');
+}
+```
+
+foo.js 生成的包裹代码为:
+```
+function(module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_exports__["a"] = ({
+  name: 'quanquan',
+  job: 'fe',
+ });
+}
+```
+不难发现, 和 commonjs 不同的地方:
+
+首先, 包装函数的参数之前的 module.exports 变成了__webpack_exports__ 其次, 在使用了 es6 模块导入语法(import)的地方, 给__webpack_exports__添加了属性__esModule 其余的部分和 commonjs 类似
+
+我们发现, commonjs 中咩有用到的 webpack_require.n 这个方法还是没有用到, 这难道是废方法?
+
+#### es6 Module CommonJs 混合使用
+修改 foo.js 内容如下:
+```
+module.exports = {
+  name: 'quanquan',
+  job: 'fe',
+};
+```
+打包的结果为:
+```
+/******/ (function(modules) { // webpackBootstrap
+/******/  // The module cache
+/******/  var installedModules = {};
+/******/
+/******/  // The require function
+/******/  function __webpack_require__(moduleId) {
+/******/
+/******/   // Check if module is in cache
+/******/   if(installedModules[moduleId]) {
+/******/    return installedModules[moduleId].exports;
+/******/   }
+/******/   // Create a new module (and put it into the cache)
+/******/   var module = installedModules[moduleId] = {
+/******/    i: moduleId,
+/******/    l: false,
+/******/    exports: {}
+/******/   };
+/******/
+/******/   // Execute the module function
+/******/   modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/   // Flag the module as loaded
+/******/   module.l = true;
+/******/
+/******/   // Return the exports of the module
+/******/   return module.exports;
+/******/  }
+/******/
+/******/
+/******/  // expose the modules object (__webpack_modules__)
+/******/  __webpack_require__.m = modules;
+/******/
+/******/  // expose the module cache
+/******/  __webpack_require__.c = installedModules;
+/******/
+/******/  // define getter function for harmony exports
+/******/  __webpack_require__.d = function(exports, name, getter) {
+/******/   if(!__webpack_require__.o(exports, name)) {
+/******/    Object.defineProperty(exports, name, {
+/******/     configurable: false,
+/******/     enumerable: true,
+/******/     get: getter
+/******/    });
+/******/   }
+/******/  };
+/******/
+/******/  // getDefaultExport function for compatibility with non-harmony modules
+/******/  __webpack_require__.n = function(module) {
+/******/   var getter = module && module.__esModule ?
+/******/    function getDefault() { return module['default']; } :
+/******/    function getModuleExports() { return module; };
+/******/   __webpack_require__.d(getter, 'a', getter);
+/******/   return getter;
+/******/  };
+/******/
+/******/  // Object.prototype.hasOwnProperty.call
+/******/  __webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/  // __webpack_public_path__
+/******/  __webpack_require__.p = "";
+/******/
+/******/  // Load entry module and return exports
+/******/  return __webpack_require__(__webpack_require__.s = 0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__foo__ = __webpack_require__(1);
+// 这里用到了 __webpack_require__.n
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__foo___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__foo__);
+
+
+console.log(__WEBPACK_IMPORTED_MODULE_0__foo___default.a);
+console.log('我是高级前端工程师~');
+/* harmony default export */ __webpack_exports__["default"] = ({});
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports) {
+
+module.exports = {
+  name: 'quanquan',
+  job: 'fe',
+};
+
+
+/***/ })
+/******/ ]);
+```
+
+index.js 没有变化, 也就是说当导出模块导出的语法为 commonjs 而导入模块的导入语法为 es6 时, 导入模块就会用到了 webpack_require.n 这个方法.
+
+
+
+
+!(参考)[https://mp.weixin.qq.com/s/UWPPXxZJHAs0Blv08_LOTg]
